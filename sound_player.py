@@ -6,18 +6,42 @@ Usage: python3 sound_player.py <port> [baud]
   Win example:  python3 sound_player.py COM3
 """
 
-import sys, os
+import sys, os, subprocess
 import serial
 import pygame
+
+VOICE_CMDS = {
+    "SOUND:MENU_INTRO":  "menu_intro.m4a",
+    "SOUND:MODE_NORMAL": "mode_normal.m4a",
+    "SOUND:MODE_ENDLESS": "mode_endless.m4a",
+    "SOUND:MODE_MULTI":  "mode_multi.m4a",
+    "SOUND:MODE_SPEED":  "mode_speed.m4a",
+}
+
+_afplay_proc = None
+
+def play_voice(cmd):
+    global _afplay_proc
+    fname = VOICE_CMDS.get(cmd)
+    if not fname:
+        return
+    path = os.path.join(SOUNDS_DIR, fname)
+    if not os.path.exists(path):
+        print(f"  (voice clip not found: {fname})")
+        return
+    if _afplay_proc and _afplay_proc.poll() is None:
+        _afplay_proc.terminate()
+    _afplay_proc = subprocess.Popen(["afplay", path])
 
 SOUNDS_DIR = os.path.join(os.path.dirname(__file__), "sounds")
 
 def load_sounds():
     sounds = {}
     files = {
-        "MUSIC:START": "music.wav",
-        "SOUND:DIE":   "die.wav",
-        "SOUND:EAT":   "eat.wav",
+        "MUSIC:START":      "music.wav",
+        "SOUND:DIE":        "die.wav",
+        "SOUND:EAT":        "eat.wav",
+        "SOUND:MODE_SELECT": "mode_select.wav",
     }
     for cmd, fname in files.items():
         path = os.path.join(SOUNDS_DIR, fname)
@@ -26,6 +50,12 @@ def load_sounds():
             print(f"  loaded {fname}")
         else:
             print(f"  WARNING: {path} not found — run generate_sounds.py first")
+    for cmd, fname in VOICE_CMDS.items():
+        path = os.path.join(SOUNDS_DIR, fname)
+        if os.path.exists(path):
+            print(f"  voice clip ready: {fname}")
+        else:
+            print(f"  (voice clip missing: {fname} — record and place in sounds/)")
     return sounds
 
 def play_sound(cmd, sounds, music_channel, sfx_channel):
@@ -46,6 +76,14 @@ def play_sound(cmd, sounds, music_channel, sfx_channel):
     elif cmd == "SOUND:EAT":
         if "SOUND:EAT" in sounds:
             sfx_channel.play(sounds["SOUND:EAT"])
+
+    elif cmd == "SOUND:MODE_SELECT":
+        if "SOUND:MODE_SELECT" in sounds:
+            sfx_channel.play(sounds["SOUND:MODE_SELECT"])
+
+    elif cmd in VOICE_CMDS:
+        music_channel.stop()
+        play_voice(cmd)
 
 def main():
     if len(sys.argv) < 2:

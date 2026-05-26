@@ -1,4 +1,5 @@
 #pragma once
+#include "menu.h"
 
 // Send sound commands to the computer over serial
 void soundInit();
@@ -14,3 +15,8 @@ void soundDie();
 
 // Play eat/collect sound
 void soundEat();
+
+// Menu audio
+void soundMenuIntro();
+void soundModeName(GameMode mode);
+void soundModeSelect();
